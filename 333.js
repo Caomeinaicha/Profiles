@@ -1,7 +1,7 @@
 /*******************************
-Quantumult X 资源解析器1
+Quantumult X 资源解析器
 
-功能：强制启用/禁用UDP转发和Fast Open，删除节点名称中的国旗
+功能：根据订阅参数设置UDP转发和Fast Open，删除节点名称中的国旗
 
 使用方法：
 在订阅链接后使用#添加参数，并用&连接不同的参数。
@@ -17,29 +17,27 @@ const emoji = params.emoji === '0'; // 只有当emoji=0时删除国旗
 
 const data = $resource.content;
 
-const lines = data.split('\n').map(line => {
-    if (line.startsWith("vmess://") || line.startsWith("ss://") || line.startsWith("trojan://") || line.startsWith("https://") || line.startsWith("http://") || line.startsWith("socks5://") || line.startsWith("ssr://") || line.startsWith("shadowsocks://")) {
-        let decoded = Buffer.from(line.split("://")[1], 'base64').toString('utf-8');
-        
-        if (emoji) {
-            const flagRegex = /[\u{1F1E6}-\u{1F1FF}]{2}/gu;
-            decoded = decoded.replace(flagRegex, "").trim();
-        }
+let result = data;
 
-        if (udp !== null) {
-            decoded = decoded.replace(/"udp":\s*(true|false)/g, `"udp": ${udp}`);
-        }
-        
-        if (tfo !== null) {
-            decoded = decoded.replace(/"tfo":\s*(true|false)/g, `"tfo": ${tfo}`);
-        }
-
-        const encoded = Buffer.from(decoded, 'utf-8').toString('base64');
-        return `${line.split("://")[0]}://${encoded}`;
+if (udp !== null && tfo !== null) {
+    // 根据参数设置 UDP 和 Fast Open
+    if (udp && tfo) {
+        // 设置 UDP 转发和 Fast Open
+        result = result.replace(/"udp":\s*(true|false)/g, `"udp": true`);
+        result = result.replace(/"tfo":\s*(true|false)/g, `"tfo": true`);
+        result = result.replace(/"udp-relay":\s*(true|false)/g, `"udp-relay": true`);
+    } else {
+        // 关闭 UDP 转发和 Fast Open
+        result = result.replace(/"udp":\s*(true|false)/g, `"udp": false`);
+        result = result.replace(/"tfo":\s*(true|false)/g, `"tfo": false`);
+        result = result.replace(/"udp-relay":\s*(true|false)/g, `"udp-relay": false`);
     }
-    return line;
-});
+}
 
-const result = lines.join('\n');
+if (emoji) {
+    // 删除节点名称中的国旗
+    const flagRegex = /[\u{1F1E6}-\u{1F1FF}]{2}/gu;
+    result = result.replace(flagRegex, "").trim();
+}
 
 $done({content: result});
